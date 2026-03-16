@@ -11,8 +11,7 @@
 
 **Разработчик:** [Dead79](https://github.com/Dead79) (EVGENIY)  
 **Email:** 79greed@gmail.com  
-**Репозиторий:** [teachMeSkills-my-homework](https://github.com/Dead79/teachMeSkills-my-homework)  
-**Ветка:** development 
+**Репозиторий:** [internet-shop](https://github.com/Dead79/internet-shop)
 
 ## 📋 Содержание
 - [О проекте](#о-проекте)
@@ -20,15 +19,11 @@
 - [Установка и запуск](#установка-и-запуск)
 - [Тестирование](#тестирование)
 
-
 ## 🎯 О проекте
 
 Этот проект является домашним заданием в рамках обучения в TeachMeSkills. Представляет собой полноценный интернет-магазин с разделением прав доступа (администратор/пользователь), системой заказов и возможностью оценивать товары.
 
-**Статус:** Активная разработка (development branch)  
- 
-
-
+**Статус:** Активная разработка
 
 ## 🛠 Технологии
 
@@ -62,22 +57,15 @@
 
 1. **Клонируйте репозиторий**
 
-git clone https://github.com/Dead79/teachMeSkills-my-homework.git
-cd teachMeSkills-my-homework
+git clone https://github.com/Dead79/internet-shop.git
+cd internet-shop
 
-Переключитесь на ветку development
-
-git checkout development
-
-Создайте виртуальное окружение
 
 # Windows
-
 python -m venv venv
 venv\Scripts\activate
 
 # MacOS/Linux
-
 python3 -m venv venv
 source venv/bin/activate
 
@@ -88,11 +76,10 @@ pip install -r requirements.txt
 Запустите приложение
 
 python main.py
-
 Откройте браузер и перейдите по адресу
 
+text
 http://127.0.0.1:5000
-
 Данные для входа
 Администратор:
 
@@ -104,43 +91,39 @@ http://127.0.0.1:5000
 
 Зарегистрируйтесь самостоятельно через форму регистрации
 
-
-
 🧪 Тестирование
-
 Запуск всех тестов
-
+bash
 pytest tests/ -v
-
 Запуск конкретного теста
-
+bash
 pytest tests/test_models.py -v
 pytest tests/test_routes.py -v
-
 Тесты покрывают:
 Создание моделей
+
 Хеширование паролей
+
 Регистрацию и вход
+
 Доступ к страницам
+
 Валидацию форм
+
 Обработку ошибок
-
-
 
 ❗ Возможные ошибки и их решение
 1. Ошибка: "ImportError: No module named 'flask'"
 Решение: Установите зависимости
 
-
+bash
 pip install -r requirements.txt
-
 2. Ошибка: "sqlite3.OperationalError: no such table"
 Решение: Удалите файл shop.db и перезапустите приложение
 
-
+bash
 rm shop.db  # или del shop.db в Windows
 python main.py
-
 3. Ошибка: "CSRF token missing"
 Решение: Обновите страницу и отправьте форму заново
 
@@ -154,13 +137,8 @@ python main.py
 python
 app.run(debug=True, port=5001)
 
-Другие учебные проекты:
-
-alcohol_tracker - трекер алкоголя
 
 📄 Лицензия
 Проект является учебным и предназначен для демонстрации навыков веб-разработки в рамках курса TeachMeSkills.
 
 Автор: Dead79
-
-

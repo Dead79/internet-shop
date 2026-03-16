@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>
+        <i class="bi bi-pencil-square"></i> Редактирование товара
+    </h1>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Назад
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Информация о товаре</h5>
+            </div>
+            <div class="card-body">
+                {% if product.stock == 0 %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Внимание!</strong> Товара нет в наличии (количество: 0).
+                    Покупатели не смогут его заказать, пока вы не увеличите количество.
+                </div>
+                {% endif %}
+
+                <form method="POST" id="editProductForm">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.name.label(class="form-label fw-bold") }}
+                            {{ form.name(class="form-control form-control-lg", id="name") }}
+                            {% for error in form.name.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-6">
+                            {{ form.price.label(class="form-label fw-bold") }}
+                            <div class="input-group">
+                                <span class="input-group-text">₽</span>
+                                {{ form.price(class="form-control form-control-lg", type="number", step="0.01", id="price") }}
+                            </div>
+                            {% for error in form.price.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label fw-bold") }}
+                        {{ form.description(class="form-control", rows="5", style="font-size: 1.1rem;", id="description") }}
+                        {% for error in form.description.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.stock.label(class="form-label fw-bold") }}
+                            <div class="input-group">
+                                {{ form.stock(class="form-control form-control-lg", type="number", min="0", id="stock") }}
+                                <span class="input-group-text">шт.</span>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle"></i>
+                                    Текущее количество: <strong>{{ product.stock }} шт.</strong>
+                                </small>
+                            </div>
+
+                            <!-- Быстрые действия для установки количества -->
+                            <div class="btn-group mt-2 w-100" role="group">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="setStock(0)">
+                                    <i class="bi bi-x-circle"></i> Установить 0 (нет в наличии)
+                                </button>
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="setStock(10)">
+                                    <i class="bi bi-plus-circle"></i> Пополнить (10 шт)
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="setStock(50)">
+                                    <i class="bi bi-plus-circle"></i> Пополнить (50 шт)
+                                </button>
+                            </div>
+
+                            {% for error in form.stock.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-6">
+                            {{ form.image_url.label(class="form-label fw-bold") }}
+                            {{ form.image_url(class="form-control form-control-lg", id="image_url") }}
+                            <small class="text-muted">URL изображения товара</small>
+                            {% for error in form.image_url.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-success btn-lg px-5" onclick="return confirmChanges()">
+                            <i class="bi bi-check-circle"></i> Сохранить изменения
+                        </button>
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-lg px-5">
+                            <i class="bi bi-x-circle"></i> Отмена
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Предпросмотр товара -->
+    <div class="col-md-4">
+        <div class="card shadow sticky-top" style="top: 20px;">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-eye"></i> Предпросмотр</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    {% if product.image_url %}
+                    <img src="{{ product.image_url }}" class="img-fluid rounded" alt="{{ product.name }}" style="max-height: 200px;" id="preview-image">
+                    {% else %}
+                    <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="height: 150px;" id="preview-image-placeholder">
+                        <i class="bi bi-image" style="font-size: 3rem;"></i>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <h4 class="text-center" id="preview-name">{{ product.name }}</h4>
+
+                <div class="text-center mb-3">
+                    <span class="badge bg-primary fs-6" id="preview-price">{{ product.price }} ₽</span>
+                    <span class="badge {% if product.stock > 0 %}bg-success{% else %}bg-danger{% endif %} fs-6" id="preview-stock">
+                        {% if product.stock > 0 %}
+                        ✅ В наличии: {{ product.stock }} шт.
+                        {% else %}
+                        ❌ Нет в наличии
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="alert {% if product.stock > 0 %}alert-success{% else %}alert-danger{% endif %}" id="stock-alert">
+                    <i class="bi {% if product.stock > 0 %}bi-check-circle{% else %}bi-exclamation-triangle{% endif %}"></i>
+                    {% if product.stock > 0 %}
+                    Товар доступен для заказа
+                    {% else %}
+                    Товар НЕ доступен для заказа (количество: 0)
+                    {% endif %}
+                </div>
+
+                <p class="text-muted" id="preview-description">{{ product.description[:100] }}...</p>
+
+                <hr>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Подсказка:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Вы можете установить количество <strong>0</strong> - товар исчезнет из продажи</li>
+                        <li>При установке количества <strong>больше 0</strong> товар снова появится в магазине</li>
+                        <li>Покупатели не видят товары с количеством 0</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Функция для быстрой установки количества
+function setStock(value) {
+    document.getElementById('stock').value = value;
+    updatePreviewStock(value);
+}
+
+// Обновление предпросмотра количества
+function updatePreviewStock(stock) {
+    const stockBadge = document.getElementById('preview-stock');
+    const stockAlert = document.getElementById('stock-alert');
+
+    stock = parseInt(stock);
+
+    if (stock > 0) {
+        stockBadge.className = 'badge bg-success fs-6';
+        stockBadge.innerHTML = '✅ В наличии: ' + stock + ' шт.';
+
+        stockAlert.className = 'alert alert-success';
+        stockAlert.innerHTML = '<i class="bi bi-check-circle"></i> Товар доступен для заказа';
+    } else {
+        stockBadge.className = 'badge bg-danger fs-6';
+        stockBadge.innerHTML = '❌ Нет в наличии';
+
+        stockAlert.className = 'alert alert-danger';
+        stockAlert.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Товар НЕ доступен для заказа (количество: 0)';
+    }
+}
+
+// Подтверждение изменений
+function confirmChanges() {
+    const stock = parseInt(document.getElementById('stock').value);
+    const productName = document.getElementById('name').value;
+    const oldStock = {{ product.stock }};
+
+    if (stock === 0 && oldStock > 0) {
+        return confirm(`⚠️ Внимание!\n\nВы собираетесь установить количество товара "${productName}" равным 0.\n\nТовар будет скрыт из магазина и покупатели не смогут его заказать.\n\nПродолжить?`);
+    }
+
+    if (stock > 0 && oldStock === 0) {
+        return confirm(`✅ Товар "${productName}" снова появится в продаже с количеством ${stock} шт.\n\nПродолжить?`);
+    }
+
+    if (stock === 0 && oldStock === 0) {
+        return confirm(`ℹ️ Товар "${productName}" останется недоступным для заказа (количество: 0).\n\nПродолжить?`);
+    }
+
+    return true;
+}
+
+// Динамическое обновление предпросмотра
+document.getElementById('name').addEventListener('input', function(e) {
+    document.getElementById('preview-name').textContent = e.target.value || '{{ product.name }}';
+});
+
+document.getElementById('price').addEventListener('input', function(e) {
+    document.getElementById('preview-price').textContent = (e.target.value || '{{ product.price }}') + ' ₽';
+});
+
+document.getElementById('stock').addEventListener('input', function(e) {
+    updatePreviewStock(e.target.value || 0);
+});
+
+document.getElementById('description').addEventListener('input', function(e) {
+    document.getElementById('preview-description').textContent = (e.target.value || '{{ product.description }}').substring(0, 100) + '...';
+});
+
+document.getElementById('image_url').addEventListener('input', function(e) {
+    const url = e.target.value;
+    const previewImage = document.getElementById('preview-image');
+    const placeholder = document.getElementById('preview-image-placeholder');
+
+    if (url && previewImage) {
+        previewImage.src = url;
+    }
+});
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Устанавливаем обработчик для поля количества
+    const stockInput = document.getElementById('stock');
+    stockInput.addEventListener('change', function() {
+        updatePreviewStock(this.value);
+    });
+});
+</script>
+
+<style>
+/* Стили для кнопок быстрого действия */
+.btn-group .btn {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.2rem;
+}
+
+/* Анимация для предпросмотра */
+#preview-stock, #stock-alert {
+    transition: all 0.3s ease;
+}
+
+/* Стили для алертов */
+.alert {
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+/* Стили для предпросмотра */
+.sticky-top {
+    z-index: 100;
+}
+
+/* Улучшенные подсказки */
+.alert-info ul {
+    padding-left: 1.2rem;
+}
+
+.alert-info li {
+    margin-bottom: 0.3rem;
+}
+</style>
+{% endblock %}

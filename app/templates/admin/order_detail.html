@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            Заказ #{{ order.id }}
+            {% if order.status == 'pending' %}
+            <span class="badge bg-warning text-dark fs-6">⏳ Ожидает</span>
+            {% elif order.status == 'processing' %}
+            <span class="badge bg-info fs-6">🔄 В обработке</span>
+            {% elif order.status == 'completed' %}
+            <span class="badge bg-success fs-6">✅ Выполнен</span>
+            {% elif order.status == 'cancelled' %}
+            <span class="badge bg-danger fs-6">❌ Отменен</span>
+            {% endif %}
+        </h1>
+        <div>
+            <a href="{{ url_for('admin_orders') }}" class="btn btn-outline-secondary">
+                ← Назад к списку заказов
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Информация о заказе -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Информация о заказе</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <th>ID заказа:</th>
+                            <td>#{{ order.id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Дата создания:</th>
+                            <td>{{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Общая сумма:</th>
+                            <td><strong>{{ order.total_amount }} руб.</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Статус:</th>
+                            <td>
+                                {% if order.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">⏳ Ожидает</span>
+                                {% elif order.status == 'processing' %}
+                                <span class="badge bg-info">🔄 В обработке</span>
+                                {% elif order.status == 'completed' %}
+                                <span class="badge bg-success">✅ Выполнен</span>
+                                {% elif order.status == 'cancelled' %}
+                                <span class="badge bg-danger">❌ Отменен</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Информация о покупателе -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Информация о покупателе</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Имя:</th>
+                            <td>{{ order.user.username }}</td>
+                        </tr>
+                        <tr>
+                            <th>Email:</th>
+                            <td>{{ order.user.email }}</td>
+                        </tr>
+                        <tr>
+                            <th>Дата регистрации:</th>
+                            <td>{{ order.user.created_at.strftime('%d.%m.%Y') }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Изменение статуса -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">Изменить статус</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_update_order_status', order_id=order.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-3">
+                            <select name="status" class="form-select">
+                                <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>
+                                    ⏳ Ожидает
+                                </option>
+                                <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>
+                                    🔄 В обработке
+                                </option>
+                                <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>
+                                    ✅ Выполнен
+                                </option>
+                                <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>
+                                    ❌ Отменен
+                                </option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-warning w-100">
+                            Обновить статус
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Кнопка отмены заказа (для админа) -->
+            {% if order.status not in ['completed', 'cancelled'] %}
+            <div class="card mb-4 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Отмена заказа</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">При отмене заказа все товары будут возвращены на склад.</p>
+                    <form method="POST" action="{{ url_for('admin_cancel_order', order_id=order.id) }}"
+                          onsubmit="return confirm('Вы уверены, что хотите отменить заказ #{{ order.id }}? Товары будут возвращены на склад.')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger w-100">
+                            <i class="bi bi-x-circle"></i> Отменить заказ
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Удаление заказа -->
+            <div class="card mb-4 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Опасная зона</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_delete_order', order_id=order.id) }}"
+                          onsubmit="return confirm('Вы уверены, что хотите удалить заказ #{{ order.id }}? Товары будут возвращены на склад. Это действие нельзя отменить!')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger w-100">
+                            🗑️ Удалить заказ
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Состав заказа -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Состав заказа</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>№</th>
+                                    <th>Товар</th>
+                                    <th>Цена за ед.</th>
+                                    <th>Количество</th>
+                                    <th>Сумма</th>
+                                    <th>Статус возврата</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <strong>{{ item.product_name }}</strong>
+                                        <br>
+                                        <small class="text-muted">ID товара: {{ item.product_id }}</small>
+                                    </td>
+                                    <td>{{ item.price }} руб.</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td><strong>{{ item.price * item.quantity }} руб.</strong></td>
+                                    <td>
+                                        {% if order.status == 'cancelled' %}
+                                        <span class="badge bg-success">Возвращен</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Не возвращен</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-dark">
+                                <tr>
+                                    <th colspan="4" class="text-end">Итого:</th>
+                                    <th>{{ order.total_amount }} руб.</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    {% if order.status == 'cancelled' %}
+                    <div class="alert alert-success mt-3">
+                        <i class="bi bi-check-circle"></i>
+                        Заказ отменен. Все товары возвращены на склад.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Дополнительные стили -->
+<style>
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.card-header {
+    font-weight: bold;
+}
+.table th {
+    width: 40%;
+}
+.badge {
+    font-size: 0.9em;
+    padding: 0.5em 0.7em;
+}
+</style>
+{% endblock %}

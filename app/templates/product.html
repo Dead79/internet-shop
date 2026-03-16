@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        {% if product.image_url %}
+        <img src="{{ product.image_url }}" class="img-fluid rounded" alt="{{ product.name }}">
+        {% else %}
+        <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="height: 400px;">
+            <i class="bi bi-image" style="font-size: 5rem;"></i>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-6">
+        <h1>{{ product.name }}</h1>
+
+        <!-- Рейтинг товара -->
+        <div class="mb-3">
+            <div class="d-flex align-items-center">
+                <div class="me-2">
+                    {% set avg_rating = product.average_rating() %}
+                    {% for i in range(1, 6) %}
+                        {% if i <= avg_rating %}
+                            <i class="bi bi-star-fill text-warning"></i>
+                        {% elif i - 0.5 <= avg_rating %}
+                            <i class="bi bi-star-half text-warning"></i>
+                        {% else %}
+                            <i class="bi bi-star text-warning"></i>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <span class="text-muted">
+                    ({{ product.rating_count() }} {{ 'оценка' if product.rating_count() == 1 else 'оценок' }})
+                </span>
+            </div>
+        </div>
+
+        <p class="lead">{{ product.description }}</p>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h3 class="text-primary mb-3">{{ product.price }} ₽</h3>
+                <p class="mb-3">
+                    {% if product.stock > 0 %}
+                    <span class="badge bg-success">В наличии: {{ product.stock }} шт.</span>
+                    {% else %}
+                    <span class="badge bg-danger">Нет в наличии</span>
+                    {% endif %}
+                </p>
+
+                {% if current_user.is_authenticated %}
+                    {% if product.stock > 0 %}
+                    <form method="POST" action="{{ url_for('add_to_cart', product_id=product.id) }}" class="mb-3">
+                        {{ cart_form.hidden_tag() }}
+                        <div class="row g-3">
+                            <div class="col-auto">
+                                {{ cart_form.quantity.label(class="form-label") }}
+                                {{ cart_form.quantity(class="form-control", type="number", min="1", max=product.stock) }}
+                            </div>
+                            <div class="col-auto d-flex align-items-end">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-cart-plus"></i> Добавить в корзину
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    <a href="{{ url_for('quick_add_to_cart', product_id=product.id) }}" class="btn btn-outline-success">
+                        <i class="bi bi-lightning"></i> Купить в 1 клик
+                    </a>
+                    {% endif %}
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <a href="{{ url_for('login') }}" class="alert-link">Войдите</a>, чтобы добавить товар в корзину
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Блок с отзывами и оценками -->
+<div class="row mt-5">
+    <div class="col-md-8">
+        <h3>Отзывы о товаре</h3>
+
+        {% if current_user.is_authenticated %}
+        <!-- Форма для оценки -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    {% if user_rating %}
+                        <i class="bi bi-pencil"></i> Изменить оценку
+                    {% else %}
+                        <i class="bi bi-star"></i> Оценить товар
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('rate_product', product_id=product.id) }}">
+                    {{ rating_form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ rating_form.score.label(class="form-label") }}
+                        {{ rating_form.score(class="form-select") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ rating_form.comment.label(class="form-label") }}
+                        {{ rating_form.comment(class="form-control", rows="3", placeholder="Поделитесь впечатлениями о товаре (необязательно)") }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        {% if user_rating %}
+                            <i class="bi bi-check-circle"></i> Обновить оценку
+                        {% else %}
+                            <i class="bi bi-star"></i> Отправить оценку
+                        {% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Список отзывов -->
+        {% if ratings %}
+            {% for rating in ratings %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            <i class="bi bi-person-circle"></i> {{ rating.user.username }}
+                        </h6>
+                        <small class="text-muted">{{ rating.created_at.strftime('%d.%m.%Y') }}</small>
+                    </div>
+
+                    <div class="mb-2">
+                        {% for i in range(1, 6) %}
+                            {% if i <= rating.score %}
+                                <i class="bi bi-star-fill text-warning"></i>
+                            {% else %}
+                                <i class="bi bi-star text-warning"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    {% if rating.comment %}
+                    <p class="card-text">{{ rating.comment }}</p>
+                    {% endif %}
+
+                    {% if current_user.is_authenticated and current_user.id == rating.user_id %}
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> Это ваша оценка
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted">Пока нет отзывов. Будьте первым!</p>
+        {% endif %}
+    </div>
+
+    <!-- Статистика оценок -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Статистика оценок</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <h2>{{ "%.1f"|format(product.average_rating()) }}</h2>
+                    <div class="mb-2">
+                        {% for i in range(1, 6) %}
+                            {% if i <= product.average_rating() %}
+                                <i class="bi bi-star-fill text-warning"></i>
+                            {% elif i - 0.5 <= product.average_rating() %}
+                                <i class="bi bi-star-half text-warning"></i>
+                            {% else %}
+                                <i class="bi bi-star text-warning"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <p class="text-muted">Всего оценок: {{ product.rating_count() }}</p>
+                </div>
+
+                <!-- Распределение оценок -->
+                {% for score in range(5, 0, -1) %}
+                {% set count = ratings|selectattr('score', 'equalto', score)|list|length %}
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between small">
+                        <span>{{ score }} ★</span>
+                        <span>{{ count }} {{ 'оценка' if count == 1 else 'оценок' }}</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-warning"
+                             style="width: {% if ratings|length > 0 %}{{ (count / ratings|length * 100)|int }}{% else %}0{% endif %}%">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
